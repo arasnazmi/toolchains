@@ -4,7 +4,7 @@
 version: '3'
 
 vars:
-  VERSION: '1.0.4'
+  VERSION: '1.0.5'
   TOOLCHAIN_ARCH: aarch64-none-linux-gnu
   DISTRO_BASE: '{{ .DISTRO_BASE | default "ubuntu" }}'
   DISTRO_SUITE: '{{ .DISTRO_SUITE | default "jammy" }}'
@@ -115,7 +115,7 @@ tasks:
       - echo 'echo "Timestamp={{ now.UTC.Format "2006-01-02 15:04:05Z" }}"' | tee -a {{ .ENV_PATH }}
       - echo
       - echo '[ -z "${BASH_SOURCE[0]}" ] && ENV_PATH="$(dirname "$(realpath "$0")")" || ENV_PATH="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"' | tee -a {{ .ENV_PATH }}
-      - echo export PATH='"$ENV_PATH/toolchain/bin:$PATH"'
+      - echo export PATH='"$ENV_PATH/toolchain/bin:$PATH"' | tee -a {{ .ENV_PATH }}
       - echo export SDKTARGETSYSROOT='"$ENV_PATH/{{ .SYSROOT_REL_PATH }}"' | tee -a {{ .ENV_PATH }}
       - echo export AR='{{ .TOOLCHAIN_ARCH }}-ar' | tee -a {{ .ENV_PATH }}
       - echo export ARCH='arm64' | tee -a {{ .ENV_PATH }}
@@ -135,7 +135,6 @@ tasks:
       - echo export NM='{{ .TOOLCHAIN_ARCH }}-nm' | tee -a {{ .ENV_PATH }}
       - echo export OBJCOPY='{{ .TOOLCHAIN_ARCH }}-objcopy' | tee -a {{ .ENV_PATH }}
       - echo export OBJDUMP='{{ .TOOLCHAIN_ARCH }}-objdump' | tee -a {{ .ENV_PATH }}
-      - echo export PATH='"{{ .TOOLCHAIN_DIR }}/bin:$PATH"' | tee -a {{ .ENV_PATH }}
       - echo export PKG_CONFIG_PATH='"$SDKTARGETSYSROOT/usr/lib/pkgconfig:$SDKTARGETSYSROOT/usr/share/pkgconfig"' | tee -a {{ .ENV_PATH }}
       - echo export PKG_CONFIG_SYSROOT_DIR='$SDKTARGETSYSROOT' | tee -a {{ .ENV_PATH }}
       - echo export RANLIB='{{ .TOOLCHAIN_ARCH }}-ranlib' | tee -a {{ .ENV_PATH }}
