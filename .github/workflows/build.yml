@@ -20,19 +20,18 @@ on:
         type: choice
         default: jammy
         options: [ jammy, noble, bullseye, bookworm ]
-      distro_type:
-        description: 'Distro type'
-        type: choice
-        default: minimal
-        options: [ minimal, qt ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro_type: [ minimal, qt, edgeai ]
     env:
       DISTRO_BASE: ${{ inputs.distro_base || 'ubuntu' }}
       DISTRO_SUITE: ${{ inputs.distro_suite || 'jammy' }}
-      DISTRO_TYPE: ${{ inputs.distro_type || 'minimal' }}
+      DISTRO_TYPE: ${{ matrix.distro_type }}
 
     steps:
       - name: Checkout
@@ -74,9 +73,16 @@ jobs:
             DISTRO_SUITE="$DISTRO_SUITE" \
             DISTRO_TYPE="$DISTRO_TYPE"
 
+      - name: Tag tarball with distro type
+        run: |
+          find build/tarball -name '*.tar.gz' | while read -r f; do
+            mv "$f" "${f%.tar.gz}-${DISTRO_TYPE}.tar.gz"
+          done
+          ls -lh build/tarball/**/*.tar.gz
+
       - name: Upload toolchain tarball
         uses: actions/upload-artifact@v4
         with:
-          name: t3gemstone-toolchains-${{ env.DISTRO_BASE }}-${{ env.DISTRO_SUITE }}
+          name: t3gemstone-toolchains-${{ env.DISTRO_BASE }}-${{ env.DISTRO_SUITE }}-${{ matrix.distro_type }}
           path: build/tarball/**/*.tar.gz
           if-no-files-found: error

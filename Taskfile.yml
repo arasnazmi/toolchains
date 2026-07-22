@@ -90,7 +90,7 @@ tasks:
         - name: DISTRO_BASE
           enum: [ ubuntu, debian ]
         - name: DISTRO_TYPE
-          enum: [ minimal, qt ]
+          enum: [ minimal, qt, edgeai ]
         - name: DISTRO_SUITE
           enum:
             - jammy     # Ubuntu 22.04, GLIBC 2.35
