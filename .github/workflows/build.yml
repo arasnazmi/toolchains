@@ -1,0 +1,82 @@
+# T3 Foundation Gemstone Project [t3gemstone.org]
+# SPDX-License-Identifier: Apache-2.0
+
+name: Build Toolchain
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      distro_base:
+        description: 'Distro base'
+        type: choice
+        default: ubuntu
+        options: [ ubuntu, debian ]
+      distro_suite:
+        description: 'Distro suite'
+        type: choice
+        default: jammy
+        options: [ jammy, noble, bullseye, bookworm ]
+      distro_type:
+        description: 'Distro type'
+        type: choice
+        default: minimal
+        options: [ minimal, qt ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DISTRO_BASE: ${{ inputs.distro_base || 'ubuntu' }}
+      DISTRO_SUITE: ${{ inputs.distro_suite || 'jammy' }}
+      DISTRO_TYPE: ${{ inputs.distro_type || 'minimal' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force || true
+          df -h
+
+      - name: Enable qemu-user-static (multiarch)
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Install Devbox
+        uses: jetify-com/devbox-install-action@v0.13.0
+        with:
+          enable-cache: 'true'
+
+      - name: distro:create
+        run: |
+          devbox run -- task distro:create \
+            DISTRO_BASE="$DISTRO_BASE" \
+            DISTRO_SUITE="$DISTRO_SUITE" \
+            DISTRO_TYPE="$DISTRO_TYPE"
+
+      - name: distro:sysroot
+        run: |
+          devbox run -- task distro:sysroot \
+            DISTRO_BASE="$DISTRO_BASE" \
+            DISTRO_SUITE="$DISTRO_SUITE" \
+            DISTRO_TYPE="$DISTRO_TYPE"
+
+      - name: create:tarball
+        run: |
+          devbox run -- task create:tarball \
+            DISTRO_BASE="$DISTRO_BASE" \
+            DISTRO_SUITE="$DISTRO_SUITE" \
+            DISTRO_TYPE="$DISTRO_TYPE"
+
+      - name: Upload toolchain tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: t3gemstone-toolchains-${{ env.DISTRO_BASE }}-${{ env.DISTRO_SUITE }}
+          path: build/tarball/**/*.tar.gz
+          if-no-files-found: error
