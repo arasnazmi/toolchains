@@ -86,3 +86,45 @@ jobs:
           name: t3gemstone-toolchains-${{ env.DISTRO_BASE }}-${{ env.DISTRO_SUITE }}-${{ matrix.distro_type }}
           path: build/tarball/**/*.tar.gz
           if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    # Only publish on pushes to main, not on pull requests.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve toolchain version
+        id: version
+        run: |
+          VERSION=$(grep -E '^\s*VERSION:' Taskfile.yml | head -n1 | sed -E "s/.*VERSION:\s*'?([^'\"]+)'?.*/\1/")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved VERSION=${VERSION}"
+
+      - name: Download all toolchain tarballs
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect tarballs
+        run: |
+          mkdir -p release
+          find artifacts -name '*.tar.gz' -exec cp {} release/ \;
+          ls -lh release
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Toolchains v${{ steps.version.outputs.version }}
+          body: |
+            Automatically built toolchain tarballs for version `${{ steps.version.outputs.version }}`.
+
+            Commit: ${{ github.sha }}
+          files: release/*.tar.gz
+          fail_on_unmatched_files: true
+          make_latest: true
